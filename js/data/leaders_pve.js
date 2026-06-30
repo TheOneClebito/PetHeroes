@@ -18,7 +18,7 @@ window.LEADER_PVE = {
   10: { effHP: 157500, effDPS: 1931.6 },  // Elite Leader 2 (8.5/18.0)
   11: { effHP: 191250, effDPS: 2304.6 },  // Elite Leader 3 (9.0/25.0)
   12: { effHP: 286800, effDPS: 4183.2 },  // Elite Leader 4 (18.0/40.0)
-  13: { effHP: 284500, effDPS: 7500.0 }   // Legend       (12.0/11.0)
+  13: { effHP: 323500, effDPS: 9230.0 }   // Legend       (13.0/13.0 — owner-confirmed)
 };
 
 // Real-world "team HP to win" benchmarks from experienced players/mods (Discord). eff = with
