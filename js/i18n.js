@@ -92,6 +92,7 @@ I18N.strings.en = {
   opt_each:"1× of each", opt_15:"15× of one pet",
   opt_setprofile:"⚙️ Set your rebirths & last area in Profile to match recommendations to your progress.",
   opt_hatches:"~{n} hatches", opt_gold:"~{g} gold", opt_none:"No accessible egg covers this type yet — progress further.",
+  opt_special_warn:"event only (~25min, random tier)",
   // leader-drop clarity
   get_guaranteed:"guaranteed on 1st kill", get_repeat:"{p}% on repeats", get_one:"only 1 obtainable",
   // shop

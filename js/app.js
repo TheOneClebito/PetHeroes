@@ -218,6 +218,7 @@ function buildLeaderPlan(L){
     const pets=[];
     s.drops.forEach(dr=>{
       const p=byName(dr.pet); if(!p) return;
+      if((p.dps||0)<=1) return;  // negligible damage (e.g. Chick, capped at 1) — can't beat a leader
       if(!easy && !L.types.some(T=>typeMult(p.type,T)===2)) return;
       if(REWARD_LEADER[p.name]>=L.n) return;
       const rel=easy?0:releasedFromHP(p,targetHP);  // easy leaders: base HP is enough, no releasing
@@ -230,9 +231,13 @@ function buildLeaderPlan(L){
     const hatches=Math.max(...consider.map(x=>x.hatches));
     const goldCost=isFinite(egGold)?hatches*egGold:0;
     const areaNum = s.group==="Area" ? (parseInt(s.name.replace(/\D/g,""))||0) : 0;
+    // Special Event eggs are NOT reliably farmable — the event fires only ~every 25 min and its tier
+    // (easy/medium/hard) is random — so push them way down; pick them only when no area egg works.
+    const special = s.group==="Special Egg";
+    const specialPenalty = special ? 24 : 0;
     // hours: hatch time + gold-afford time, + gentle nudge toward earlier eggs (ties only; dominated by hatch count for tough leaders)
-    const effort=hatches*9/3600 + (isFinite(egGold)? goldCost/income : 0) + areaNum*0.0012;
-    groups.push({egg:s.name, cost:s.cost, hatches, goldCost, egGold, effort, areaNum,
+    const effort=hatches*9/3600 + (isFinite(egGold)? goldCost/income : 0) + areaNum*0.0012 + specialPenalty;
+    groups.push({egg:s.name, cost:s.cost, hatches, goldCost, egGold, effort, areaNum, special,
       yield:Math.round(pets.reduce((a,b)=>a+b.pct,0)), types:[...new Set(pets.flatMap(x=>x.forTypes))],
       tier:eggTier(hatches), pets});
   });
@@ -728,10 +733,13 @@ function renderLeaders(){
     const optHTML=eggPlan.groups.map(g=>{
       const goldStr=(isFinite(g.egGold)&&g.goldCost>0)?` <span class="tag">${T("opt_gold",{g:fmtNum(g.goldCost)})}</span>`:"";
       return `<div class="egggroup">
-        <div class="egghead">🥚 <b>${esc(g.egg)}</b> <span class="grind g${g.tier}">${T("opt_hatches",{n:fmtNum(g.hatches)})}</span>${goldStr} <span class="tag">${T("opt_useful",{p:g.yield})}</span></div>
+        <div class="egghead">🥚 <b>${esc(g.egg)}</b> <span class="grind g${g.tier}">${T("opt_hatches",{n:fmtNum(g.hatches)})}</span>${goldStr} <span class="tag">${T("opt_useful",{p:g.yield})}</span>${g.special?` <span class="tag warnspecial">⚠ ${T("opt_special_warn")}</span>`:""}</div>
         ${g.pets.slice(0, eggPlan.copies>1?2:4).map(x=>`<div class="optmeta">• <b>${esc(x.p.name)}</b> <span class="badge" style="background:${typeColor(x.p.type)};color:#0c0f22">${esc(x.p.type)}</span> ${x.forTypes.length?`vs ${esc(x.forTypes.join("/"))} · `:""}${x.rel>0?T("opt_release",{n:x.rel,hp:fmtNum(eggPlan.targetHP)}):T("opt_norelease")}${x.uses>1?` · <span class="tag uses">🔁 ${T("opt_uses",{n:x.uses})}</span>`:""}</div>`).join("")}
       </div>`;}).join("");
-    const optInner=`${!eggPlan.hasProfile?`<p class="optprompt" data-goprofile>${T("opt_setprofile")}</p>`:""}${optHTML||`<p class="optnote">${T("opt_none")}</p>`}<p class="optnote">${T("opt_note")}</p>`;
+    // Without a saved profile the recommendations would just be generic — show only the prompt.
+    const optInner = !eggPlan.hasProfile
+      ? `<p class="optprompt" data-goprofile>${T("opt_setprofile")}</p>`
+      : `${optHTML||`<p class="optnote">${T("opt_none")}</p>`}<p class="optnote">${T("opt_note")}</p>`;
     c.innerHTML=`<h3>#${L.n} · ${esc(L.name)} ${L.boss?"👑":L.elite?"⭐":""}</h3>
       <div class="lead-types">${L.types.map(t=>`<span class="badge" style="background:${typeColor(t)};color:#0c0f22">${esc(t)}</span>`).join("")}</div>
       <p class="desc" style="margin-top:8px">${esc(desc)}</p>
@@ -768,7 +776,8 @@ function importData(file, ok, err){
 const PETDEX_ALPHABET="0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const PETDEX_MAXDEX={1:250};  // version symbol → max dex covered (keep in lockstep with the game device)
 function decodePetdexCode(input){
-  let s=String(input||"").toUpperCase().replace(/\s+/g,"").replace(/[IL]/g,"1").replace(/O/g,"0");
+  // strip any separators (spaces, dashes, etc.) so chunked codes like "1ZZZZZ-ZZZZZ-…" paste fine
+  let s=String(input||"").toUpperCase().replace(/[^A-Z0-9]/g,"").replace(/[IL]/g,"1").replace(/O/g,"0");
   if(s.length<3) return {ok:false,err:"generic"};
   const val=c=>PETDEX_ALPHABET.indexOf(c);
   if([...s].some(c=>val(c)<0)) return {ok:false,err:"generic"};
