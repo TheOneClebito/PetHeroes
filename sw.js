@@ -1,8 +1,8 @@
 /* Pet Heroes Companion — service worker (offline cache) */
-const CACHE = "ph-companion-v37";
+const CACHE = "ph-companion-v39";
 const CORE = [
   "./", "./index.html", "./css/styles.css", "./js/app.js",
-  "./js/data/meta.js", "./js/data/pets.js", "./js/data/sources.js",
+  "./js/data/meta.js", "./js/data/pets.js", "./js/data/inv_order.js", "./js/data/sources.js",
   "./js/data/areas.js", "./js/data/rebirths.js", "./js/data/leaders.js",
   "./js/data/leaders_pve.js",
   "./js/data/types.js", "./js/data/income.js", "./js/data/events.js", "./js/data/store.js",

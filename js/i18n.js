@@ -39,7 +39,7 @@ I18N.strings.en = {
   home_open:"Open", home_quick:"Quick access",
   // pets
   pets_search:"Search {n} pets…",
-  sort_dps:"Sort: DPS ▼", sort_hp:"Sort: Base HP ▼", sort_boost:"Sort: Boosted HP ▼", sort_name:"Sort: Name A-Z", sort_dex:"Sort: Dex #",
+  sort_dps:"Sort: DPS ▼", sort_hp:"Sort: Base HP ▼", sort_boost:"Sort: Boosted HP ▼", sort_name:"Sort: Name A-Z", sort_dex:"Sort: Dex #", sort_inv:"Sort: Pet Inventory",
   chip_all:"All", chip_all_rarities:"All rarities",
   pets_count:"{n} pets", pets_empty:"No pets match your filters.",
   // pet modal

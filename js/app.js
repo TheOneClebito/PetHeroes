@@ -372,7 +372,8 @@ function renderHome(){
 }
 
 /* ---------------- PETS ---------------- */
-let petFilter={q:"",type:"",rarity:"",sort:"dex"}, filtersOpen=false;
+const INV_ORDER=(()=>{const m={}; (window.PET_INV_ORDER||[]).forEach((id,i)=>m[id]=i); return m;})();
+let petFilter={q:"",type:"",rarity:"",sort:"dex",own:""}, filtersOpen=false;
 function renderPets(){
   const types=[...new Set(PETS.map(p=>p.type))].sort();
   const rars=["Leader","Legendary","Crystal","Rainbow","Golden","Big","Event","Regular"].filter(r=>PETS.some(p=>p.rarity===r));
@@ -382,12 +383,14 @@ function renderPets(){
     <button id="pFiltersBtn" class="filterbtn"></button>
     <select id="psort">
       <option value="dex">${T("sort_dex")}</option>
+      <option value="inv">${T("sort_inv")}</option>
       <option value="dps">${T("sort_dps")}</option>
       <option value="hp">${T("sort_hp")}</option>
       <option value="boost">${T("sort_boost")}</option>
       <option value="name">${T("sort_name")}</option>
     </select>`;
   app.appendChild(controls);
+  const ownChips=el("div","chips ownchips"); ownChips.style.marginTop="10px"; app.appendChild(ownChips);
   const panel=el("div","filterpanel"+(filtersOpen?" open":""));
   const tchips=el("div","chips"); panel.appendChild(tchips);
   const rchips=el("div","chips"); rchips.style.marginTop="8px"; panel.appendChild(rchips);
@@ -409,6 +412,9 @@ function renderPets(){
   $("#psort").addEventListener("change",e=>{petFilter.sort=e.target.value;draw();});
 
   function buildChips(){
+    ownChips.innerHTML="";
+    [["","filter_all"],["owned","filter_owned"],["missing","filter_missing"]].forEach(([f,l])=>
+      ownChips.appendChild(mkChip(T(l),petFilter.own===f,()=>{petFilter.own=f;draw();})));
     tchips.innerHTML=""; rchips.innerHTML="";
     tchips.appendChild(mkChip(T("chip_all"),petFilter.type==="",()=>{petFilter.type="";draw();}));
     types.forEach(t=>tchips.appendChild(mkChip(t,petFilter.type===t,()=>{petFilter.type=petFilter.type===t?"":t;draw();},typeColor(t))));
@@ -418,6 +424,9 @@ function renderPets(){
   function draw(){
     buildChips(); updFbtn();
     let list=PETS.filter(p=>{
+      if(petFilter.own){const has=PH.owned(p.petId)>0;
+        if(petFilter.own==="owned"&&!has)return false;
+        if(petFilter.own==="missing"&&has)return false;}
       if(petFilter.type&&p.type!==petFilter.type)return false;
       if(petFilter.rarity&&p.rarity!==petFilter.rarity)return false;
       if(petFilter.q){const q=petFilter.q.toLowerCase();
@@ -426,6 +435,7 @@ function renderPets(){
     });
     const s=petFilter.sort;
     list.sort((a,b)=> s==="name"?a.name.localeCompare(b.name)
+      : s==="inv"?((INV_ORDER[a.petId]??9999)-(INV_ORDER[b.petId]??9999))
       : s==="dex"?(a.dex||999)-(b.dex||999)
       : s==="hp"?(b.baseHP||0)-(a.baseHP||0)
       : s==="boost"?(b.boostedHP||0)-(a.boostedHP||0)
