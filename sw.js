@@ -1,5 +1,5 @@
 /* Pet Heroes Companion — service worker (offline cache) */
-const CACHE = "ph-companion-v43";
+const CACHE = "ph-companion-v44";
 const CORE = [
   "./", "./index.html", "./css/styles.css", "./js/app.js",
   "./js/data/meta.js", "./js/data/pets.js", "./js/data/inv_order.js", "./js/data/sources.js",
@@ -11,8 +11,14 @@ const CORE = [
 ];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
+  // fetch each core file FRESH (bypass the browser HTTP cache) so a new SW never caches stale assets
+  e.waitUntil(
+    caches.open(CACHE).then(c => Promise.all(CORE.map(u =>
+      fetch(u, { cache: "reload" }).then(r => r && r.ok && c.put(u, r.clone())).catch(() => {})
+    ))).then(() => self.skipWaiting())
+  );
 });
+self.addEventListener("message", e => { if (e.data && e.data.type === "SKIP_WAITING") self.skipWaiting(); });
 self.addEventListener("activate", e => {
   e.waitUntil(
     caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))

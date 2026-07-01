@@ -6,6 +6,7 @@ const PETS = window.PETS||[], META = window.META||{}, AREAS = window.AREAS||[],
       EVENTS = window.EVENTS||[], ALWAYS_ON = window.ALWAYS_ON||[], STORE = window.STORE||{pets:[],skins:[],other:[]},
       PETDEX = window.PETDEX||{rooms:[]}, TRADES = window.TRADES||{toGold:[],toCrystal:[],qty:{}},
       SHOP_ROT = window.SHOP_ROTATION||null, LEADER_PVE = window.LEADER_PVE||{}, LEADER_BENCH = window.LEADER_BENCH||{};
+const APP_VERSION = "1.0";  // bump this every release (shown on Home so users can confirm they're updated)
 const $ = (s,r=document)=>r.querySelector(s);
 const el = (tag,cls,html)=>{const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e;};
 const esc = s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -298,7 +299,7 @@ function renderHome(){
     <img class="logoimg" src="images/logo.png" alt="Pet Heroes Adventure">
     <div class="brandtext">
       <h1 class="display"><span>${esc(T("brand_sub"))}</span></h1>
-      <p class="ver">${esc(T("ver_label",{n:PETS.length,v:META.version||""}))}</p>
+      <p class="ver"><b>app v${APP_VERSION}</b> · ${esc(T("ver_label",{n:PETS.length,v:META.version||""}))}</p>
     </div>
     <select id="langSel" class="langsel" aria-label="Language"></select>`;
   app.appendChild(brand);
