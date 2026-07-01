@@ -6,7 +6,7 @@ const PETS = window.PETS||[], META = window.META||{}, AREAS = window.AREAS||[],
       EVENTS = window.EVENTS||[], ALWAYS_ON = window.ALWAYS_ON||[], STORE = window.STORE||{pets:[],skins:[],other:[]},
       PETDEX = window.PETDEX||{rooms:[]}, TRADES = window.TRADES||{toGold:[],toCrystal:[],qty:{}},
       SHOP_ROT = window.SHOP_ROTATION||null, LEADER_PVE = window.LEADER_PVE||{}, LEADER_BENCH = window.LEADER_BENCH||{};
-const APP_VERSION = "1.1";  // bump this every release (shown on Home so users can confirm they're updated)
+const APP_VERSION = "1.2";  // bump this every release (shown on Home so users can confirm they're updated)
 const $ = (s,r=document)=>r.querySelector(s);
 const el = (tag,cls,html)=>{const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e;};
 const esc = s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -222,17 +222,20 @@ function buildLeaderPlan(L){
       if(L.types.length<=1 && eff<1) return;     // only mono-type leaders skip pets weak vs the type
       const rel=releasedFromHP(p,targetHP);
       const hatches=Math.ceil((copies+rel)/(dr.pct/100));
-      const power=(p.dps||0)*(p.baseHP||0)*eff;  // pet strength (DPS×HP, type-adjusted) — the WHOLE point
-      const value=power/hatches;                 // strongest pet per hatch (time is the real cost)
-      if(!best || value>best.value) best={p, pct:dr.pct, rel, hatches, power, value,
+      const goldCost=isFinite(egGold)?hatches*egGold:0;
+      // total effort in HOURS: hatching (~9s each) + time to FARM the gold it costs. Gold matters a lot —
+      // an egg costing many rebirths' worth of gold is absurd to hoard for, even if the pet is strong.
+      const effort=hatches*9/3600 + ((isFinite(egGold)&&income>0)? goldCost/income : 0);
+      const power=(p.dps||0)*(p.baseHP||0)*eff;  // pet strength (DPS×HP, type-adjusted)
+      const value=power/Math.max(effort,0.001);  // strongest pet per unit of total effort (time + gold)
+      if(!best || value>best.value) best={p, pct:dr.pct, rel, hatches, goldCost, power, value,
         forTypes:L.types.filter(T=>typeMult(p.type,T)===2)};
     });
     if(!best) return;
-    const goldCost=isFinite(egGold)?best.hatches*egGold:0;
     const areaNum = s.group==="Area" ? (parseInt(s.name.replace(/\D/g,""))||0) : 0;
     // score = value of the strong pet; Special Event eggs are event-gated (~25min, random tier) → deprioritize
     const score=best.value*(special?0.08:1);
-    groups.push({egg:s.name, cost:s.cost, hatches:best.hatches, goldCost, egGold, special, areaNum, score,
+    groups.push({egg:s.name, cost:s.cost, hatches:best.hatches, goldCost:best.goldCost, egGold, special, areaNum, score,
       headline:best, tier:eggTier(best.hatches)});
   });
   // recommend the eggs that give the strongest useful pets (per hatch), not the cheapest
@@ -723,7 +726,7 @@ function leaderPlan(L){
     useMap.set(best.c,(useMap.get(best.c)||0)+1);
   }
   const team=[...useMap.entries()].map(([c,use])=>({p:c.p,use,hp:c.hp,dps:c.dps,owned:c.owned,strong:c.strong}))
-    .sort((a,b)=>(b.use-a.use)||(b.hp*b.dps-a.hp*a.dps));
+    .sort((a,b)=>(INV_ORDER[a.p.petId]??9999)-(INV_ORDER[b.p.petId]??9999));  // same order as the in-game inventory
   const teamHP=sumHP, teamDPS=team.reduce((a,t)=>a+t.use*t.dps,0), teamSlots=team.reduce((a,t)=>a+t.use,0);
   return {needed,targetHP,cands,team,teamHP,teamDPS,teamSlots,farm};
 }
@@ -762,6 +765,7 @@ function renderLeaders(){
       : `${optHTML||`<p class="optnote">${T("opt_none")}</p>`}<p class="optnote">${T("opt_note")}</p>`;
     c.innerHTML=`<h3>#${L.n} · ${esc(L.name)} ${L.boss?"👑":L.elite?"⭐":""}</h3>
       <div class="lead-types">${L.types.map(t=>`<span class="badge" style="background:${typeColor(t)};color:#0c0f22">${esc(t)}</span>`).join("")}</div>
+      ${LEADER_PVE[L.n]?`<p class="desc" style="margin-top:6px">${T("leader_stats",{hp:`<b>${fmtNum(LEADER_PVE[L.n].effHP)}</b>`,dps:`<b>${fmtNum(LEADER_PVE[L.n].effDPS)}</b>`})}</p>`:""}
       <p class="desc" style="margin-top:8px">${esc(desc)}</p>
       <p class="desc" style="margin-top:6px">${T("reward")} <b style="color:var(--good)">${esc(L.reward)}</b> ${L.dropPct?`<span class="tag">${T("on_repeats",{p:L.dropPct})}</span>`:""}</p>
       ${(()=>{const b=LEADER_BENCH[L.n]; if(!b)return ""; const extra=b.afk?` · <span class="mut">${T("bench_afk",{hp:b.afk})}</span>`:b.typ?` · <span class="mut">${T("bench_typ",{hp:b.typ})}</span>`:""; return `<p class="benchnote">${T("bench_line",{hp:`<b>${esc(b.eff)}</b>`})}${extra}</p>`;})()}

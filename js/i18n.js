@@ -79,6 +79,7 @@ I18N.strings.en = {
   // leaders
   leaders_intro:"Pet Leaders (PvE). Recommended teams assume 15× of a pet at the listed HP — go lower if you hit the skill remote well. Mark which pets you own (on the Pets/PetDex pages) to get a personalized plan per leader.",
   reward:"Reward:", on_repeats:"{p}% on repeats",
+  leader_stats:"⚔️ Leader power: {hp} HP · {dps} DPS (total)",
   bench_line:"💪 Real players win with {hp} team HP (type-effective pets)",
   bench_afk:"or {hp} to AFK with no ability", bench_typ:"typically {hp}",
   your_best:"📋 Your 15-slot team (from pets you own)",
