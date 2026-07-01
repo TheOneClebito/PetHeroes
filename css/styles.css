@@ -167,6 +167,7 @@ details.rec summary{cursor:pointer; font-size:13px; font-weight:700; color:var(-
 details.rec summary:hover{color:var(--txt)}
 .team{display:flex; flex-wrap:wrap; gap:7px; margin-top:10px}
 .teamitem{background:var(--bg2); border:1px solid var(--line); border-radius:9px; padding:7px 9px; font-size:12px}
+.teamtotal{width:100%; margin-top:8px; font-size:12.5px; font-weight:700; color:var(--txt); font-variant-numeric:tabular-nums}
 .teamitem b{color:var(--good)} .teamitem .cnt{color:var(--accent); font-weight:800}
 .lead-types{display:flex; gap:5px; flex-wrap:wrap; margin-top:6px}
 ul.tips{margin:10px 0 0; padding-left:18px} ul.tips li{margin:5px 0; font-size:13px; color:var(--mut); line-height:1.5}

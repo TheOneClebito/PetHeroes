@@ -6,7 +6,7 @@ const PETS = window.PETS||[], META = window.META||{}, AREAS = window.AREAS||[],
       EVENTS = window.EVENTS||[], ALWAYS_ON = window.ALWAYS_ON||[], STORE = window.STORE||{pets:[],skins:[],other:[]},
       PETDEX = window.PETDEX||{rooms:[]}, TRADES = window.TRADES||{toGold:[],toCrystal:[],qty:{}},
       SHOP_ROT = window.SHOP_ROTATION||null, LEADER_PVE = window.LEADER_PVE||{}, LEADER_BENCH = window.LEADER_BENCH||{};
-const APP_VERSION = "1.0";  // bump this every release (shown on Home so users can confirm they're updated)
+const APP_VERSION = "1.1";  // bump this every release (shown on Home so users can confirm they're updated)
 const $ = (s,r=document)=>r.querySelector(s);
 const el = (tag,cls,html)=>{const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e;};
 const esc = s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -219,7 +219,7 @@ function buildLeaderPlan(L){
       if((p.dps||0)<=1) return;                 // negligible damage (e.g. Chick) — never useful
       if(REWARD_LEADER[p.name]>=L.n) return;     // a reward from this/an earlier leader
       const eff=avgMult(p.type, L.types);        // type effectiveness vs this leader
-      if(!L.elite && eff<1) return;              // regular leaders: skip pets weak vs the leader's type
+      if(L.types.length<=1 && eff<1) return;     // only mono-type leaders skip pets weak vs the type
       const rel=releasedFromHP(p,targetHP);
       const hatches=Math.ceil((copies+rel)/(dr.pct/100));
       const power=(p.dps||0)*(p.baseHP||0)*eff;  // pet strength (DPS×HP, type-adjusted) — the WHOLE point
@@ -688,14 +688,14 @@ function leaderPlan(L){
     const owned=PH.owned(p.petId); if(!owned)return;
     const mults=L.types.map(t=>typeMult(p.type,t));
     // regular leaders: skip pets weak vs a leader type. Elite/Legend are multi-type (5-8 types) so
-    // almost every pet is weak vs *something* — keep them all; HP is what carries those fights.
-    if(!L.elite && Math.min(...mults)<1) return;
+    // almost every pet is weak vs *something* — keep them all; HP/DPS carry those fights.
+    if(L.types.length<=1 && Math.min(...mults)<1) return;  // only mono-type leaders drop weak pets
     const hp=petMaxHP(p, PH.released(p.petId));
     const dps=p.dps||0;
     const effDps=dps*avgMult(p.type, L.types);   // damage adjusted for type advantage vs this leader
     // balanced score: a pet must both DEAL damage and SURVIVE — rank by effective DPS × HP
     // (this is what the team's HP×DPS product needs), not HP alone.
-    cands.push({p,owned,hp,dps,score:effDps*hp,strong:Math.max(...mults)>=2});
+    cands.push({p,owned,hp,dps,effDps,score:effDps*hp,strong:Math.max(...mults)>=2});
   });
   cands.sort((a,b)=>(b.score-a.score)||(b.hp-a.hp));
   // missing recommended pets to farm (skip leader-only drops per request)
@@ -705,8 +705,27 @@ function leaderPlan(L){
     .filter(p=>PH.owned(p.petId)===0 && !isLeaderOnly(p.name))
     .map(p=>{const d=(dropIndex[p.name]||[]).find(s=>!/Leader|Legend/i.test(s.src)); return {p,src:d};})
     .filter(x=>x.src).slice(0,4);
-  // elite leaders (incl. Legend): show a deep bench (up to 20) so players can swap pets around
-  return {needed,targetHP,cands:cands.slice(0,15),farm};  // a full 15-slot team to equip
+  // Build the actual 15-SLOT team that maximizes the team's (ΣHP)×(Σeffective-DPS) — what the battle
+  // verdict needs. Non-elite leaders let you stack the SAME pet (capped by how many you own); elite/
+  // Legend take distinct pets (1 each). Greedy by marginal gain in the product → picks a COMPLEMENTARY
+  // mix (e.g. a few high-DPS pets + many tanky ones) instead of naively stacking one pet.
+  const pool=cands.map(c=>({c, left: L.elite?1:Math.max(1,c.owned||1)}));
+  let sumHP=0, sumDps=0; const useMap=new Map();
+  for(let i=0;i<15;i++){
+    let best=null, bestGain=-1;
+    for(const e of pool){
+      if(e.left<=0) continue;
+      const gain=(sumHP+e.c.hp)*(sumDps+e.c.effDps)-sumHP*sumDps;
+      if(gain>bestGain){ bestGain=gain; best=e; }
+    }
+    if(!best) break;
+    best.left--; sumHP+=best.c.hp; sumDps+=best.c.effDps;
+    useMap.set(best.c,(useMap.get(best.c)||0)+1);
+  }
+  const team=[...useMap.entries()].map(([c,use])=>({p:c.p,use,hp:c.hp,dps:c.dps,owned:c.owned,strong:c.strong}))
+    .sort((a,b)=>(b.use-a.use)||(b.hp*b.dps-a.hp*a.dps));
+  const teamHP=sumHP, teamDPS=team.reduce((a,t)=>a+t.use*t.dps,0), teamSlots=team.reduce((a,t)=>a+t.use,0);
+  return {needed,targetHP,cands,team,teamHP,teamDPS,teamSlots,farm};
 }
 function renderLeaders(){
   app.appendChild(el("p","section-sub",T("leaders_intro")));
@@ -720,11 +739,12 @@ function renderLeaders(){
     // personalized plan
     const plan=leaderPlan(L);
     let planHTML="";
-    if(plan.cands.length){
-      planHTML=plan.cands.map(x=>{
+    if(plan.team.length){
+      planHTML=plan.team.map(x=>{
         const ready=x.hp>=plan.targetHP*0.8;  // enough HP to survive?
-        return `<span class="teamitem"><span class="cnt">${x.owned}×</span> ${esc(x.p.name)} · <b>${fmtNum(x.hp)} HP</b> · <b>${fmtNum(x.dps)} DPS</b> ${x.strong?`<span class="tag" style="background:var(--good);color:#0c0f22">${T("badge_strong")}</span>`:""}${ready?"":`<span class="tag" style="background:var(--bad);color:#0c0f22">${T("badge_low")}</span>`}</span>`;
+        return `<span class="teamitem"><span class="cnt">${x.use}×</span> ${esc(x.p.name)} · <b>${fmtNum(x.hp)} HP</b> · <b>${fmtNum(x.dps)} DPS</b> ${x.strong?`<span class="tag" style="background:var(--good);color:#0c0f22">${T("badge_strong")}</span>`:""}${ready?"":`<span class="tag" style="background:var(--bad);color:#0c0f22">${T("badge_low")}</span>`}</span>`;
       }).join("");
+      planHTML+=`<div class="teamtotal">${T("team_total",{slots:plan.teamSlots,hp:`<b>${fmtNum(plan.teamHP)}</b>`,dps:`<b>${fmtNum(plan.teamDPS)}</b>`})}${plan.teamSlots<15?` <span class="mut">${T("team_short")}</span>`:""}</div>`;
     }
     let farmHTML=plan.farm.length? `<p class="desc" style="margin-top:8px">${T("farm_prompt")} ${plan.farm.map(x=>`<b>${esc(x.p.name)}</b> <span class="mut">(${esc(x.src.src)} ${x.src.pct}%)</span>`).join(" · ")}</p>` : "";
     // egg-centric plan: which eggs to farm (each gives a basket of useful pets)
