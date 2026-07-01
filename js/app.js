@@ -299,6 +299,12 @@ function go(view){
 }
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 $("#tabbar").addEventListener("click",e=>{const b=e.target.closest("button"); if(b)go(b.dataset.view);});
+// select-all on focus for numeric fields so typing overwrites the existing value (e.g. owned/released/HP)
+document.addEventListener("focusin",e=>{
+  const t=e.target;
+  if(t&&t.matches&&t.matches('input[type=number],input[inputmode=numeric],input[inputmode=decimal]'))
+    setTimeout(()=>{try{t.select();}catch(_){}} ,0);
+});
 
 /* ---------------- HOME ---------------- */
 function renderHome(){
@@ -705,10 +711,13 @@ function leaderPlan(L){
     // almost every pet is weak vs *something* — keep them all; HP is what carries those fights.
     if(!L.elite && Math.min(...mults)<1) return;
     const hp=petMaxHP(p, PH.released(p.petId));
-    cands.push({p,owned,hp,strong:Math.max(...mults)>=2});
+    const dps=p.dps||0;
+    const effDps=dps*avgMult(p.type, L.types);   // damage adjusted for type advantage vs this leader
+    // balanced score: a pet must both DEAL damage and SURVIVE — rank by effective DPS × HP
+    // (this is what the team's HP×DPS product needs), not HP alone.
+    cands.push({p,owned,hp,dps,score:effDps*hp,strong:Math.max(...mults)>=2});
   });
-  // elite: HP is the bottleneck (Legend wants ~1-3M team HP) → rank by HP; regular → type-advantage first
-  cands.sort((a,b)=> L.elite ? (b.hp-a.hp)||(b.strong-a.strong) : (b.strong-a.strong)||(b.hp-a.hp));
+  cands.sort((a,b)=>(b.score-a.score)||(b.hp-a.hp));
   // missing recommended pets to farm (skip leader-only drops per request)
   const farm=(L.recommended||[]).map(r=>r.pet)
     .filter((nm,i,a)=>a.indexOf(nm)===i)
@@ -734,7 +743,7 @@ function renderLeaders(){
     if(plan.cands.length){
       planHTML=plan.cands.map(x=>{
         const ready=x.hp>=plan.targetHP*0.8, enough=x.owned>=plan.needed;
-        return `<span class="teamitem"><span class="cnt">${x.owned}×</span> ${esc(x.p.name)} · <b>${fmtNum(x.hp)} HP</b> ${x.strong?`<span class="tag" style="background:var(--good);color:#0c0f22">${T("badge_strong")}</span>`:""}${!enough?`<span class="tag" style="background:var(--warn);color:#0c0f22">${T("badge_need",{n:plan.needed})}</span>`:ready?`<span class="tag" style="background:var(--good);color:#0c0f22">${T("badge_ready")}</span>`:`<span class="tag" style="background:var(--bad);color:#0c0f22">${T("badge_low")}</span>`}</span>`;
+        return `<span class="teamitem"><span class="cnt">${x.owned}×</span> ${esc(x.p.name)} · <b>${fmtNum(x.hp)} HP</b> · <b>${fmtNum(x.dps)} DPS</b> ${x.strong?`<span class="tag" style="background:var(--good);color:#0c0f22">${T("badge_strong")}</span>`:""}${!enough?`<span class="tag" style="background:var(--warn);color:#0c0f22">${T("badge_need",{n:plan.needed})}</span>`:ready?`<span class="tag" style="background:var(--good);color:#0c0f22">${T("badge_ready")}</span>`:`<span class="tag" style="background:var(--bad);color:#0c0f22">${T("badge_low")}</span>`}</span>`;
       }).join("");
     }
     let farmHTML=plan.farm.length? `<p class="desc" style="margin-top:8px">${T("farm_prompt")} ${plan.farm.map(x=>`<b>${esc(x.p.name)}</b> <span class="mut">(${esc(x.src.src)} ${x.src.pct}%)</span>`).join(" · ")}</p>` : "";
