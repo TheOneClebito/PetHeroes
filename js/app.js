@@ -197,67 +197,46 @@ function buildLeaderPlan(L){
   const hps=(L.recommended||[]).map(r=>r.hp||0).filter(h=>h>0).sort((a,b)=>a-b);
   const targetHP=hps.length ? hps[Math.floor(hps.length/2)] : 1500;
   const copies=L.elite?1:15;
-  // "easy" early leaders (e.g. Cat #1 — "beat it with anything"): type advantage is irrelevant,
-  // base HP is plenty, so just suggest the earliest/cheapest egg rather than chasing type-super pets.
-  const easy = !L.elite && !L.boss && L.n<=2;
-  // player progress (rebirths + last area). Default to a mid-early point + prompt to set.
   const prof=PH.profile(); const hasProfile=(prof.area!=null||prof.rebirths!=null);
   const pArea=Math.max(1,Math.min(38, prof.area!=null?prof.area:15));
-  const pReb=Math.max(0, prof.rebirths!=null?prof.rebirths:1);
   const income=playerIncome(prof);
   // accessible egg sources for THIS player
   const acc=SRC.sources.filter(s=>{
     if(s.group==="Area"){ const n=parseInt(s.name.replace(/\D/g,""))||99; return n<=pArea; }
-    if(s.group==="Rebirth Egg") return false;  // rebirth eggs are for rebirthing/Big pets — never the way to beat a leader
+    if(s.group==="Rebirth Egg") return false;  // rebirth eggs are for rebirthing/Big pets — not for beating leaders
     if(s.group==="Special Egg") return true;
     return false;  // skip leader-drop "source" as a farm target
   });
   const groups=[];
   acc.forEach(s=>{
-    const egGold=parseNum(s.cost); // gold/hatch (NaN for rebirth/free)
-    const pets=[];
+    const egGold=parseNum(s.cost);
+    const special = s.group==="Special Egg";
+    // find the single STRONGEST useful pet you can efficiently get from this egg (quality, not cheapness)
+    let best=null;
     s.drops.forEach(dr=>{
       const p=byName(dr.pet); if(!p) return;
-      if((p.dps||0)<=1) return;  // negligible damage (e.g. Chick, capped at 1) — can't beat a leader
-      if(!easy && !L.types.some(T=>typeMult(p.type,T)===2)) return;
-      if(REWARD_LEADER[p.name]>=L.n) return;
-      const rel=easy?0:releasedFromHP(p,targetHP);  // easy leaders: base HP is enough, no releasing
-      pets.push({p, pct:dr.pct, rel, hatches:Math.ceil((copies+rel)/(dr.pct/100)),
-                 forTypes:L.types.filter(T=>typeMult(p.type,T)===2), uses:PET_USES[p.petId]||1});
+      if((p.dps||0)<=1) return;                 // negligible damage (e.g. Chick) — never useful
+      if(REWARD_LEADER[p.name]>=L.n) return;     // a reward from this/an earlier leader
+      const eff=avgMult(p.type, L.types);        // type effectiveness vs this leader
+      if(!L.elite && eff<1) return;              // regular leaders: skip pets weak vs the leader's type
+      const rel=releasedFromHP(p,targetHP);
+      const hatches=Math.ceil((copies+rel)/(dr.pct/100));
+      const power=(p.dps||0)*(p.baseHP||0)*eff;  // pet strength (DPS×HP, type-adjusted) — the WHOLE point
+      const value=power/hatches;                 // strongest pet per hatch (time is the real cost)
+      if(!best || value>best.value) best={p, pct:dr.pct, rel, hatches, power, value,
+        forTypes:L.types.filter(T=>typeMult(p.type,T)===2)};
     });
-    if(!pets.length) return;
-    pets.sort((a,b)=>a.hatches-b.hatches);
-    const consider=copies>1 ? pets.slice(0,1) : pets.slice(0,4);
-    const hatches=Math.max(...consider.map(x=>x.hatches));
-    const goldCost=isFinite(egGold)?hatches*egGold:0;
+    if(!best) return;
+    const goldCost=isFinite(egGold)?best.hatches*egGold:0;
     const areaNum = s.group==="Area" ? (parseInt(s.name.replace(/\D/g,""))||0) : 0;
-    // Special Event eggs are NOT reliably farmable — the event fires only ~every 25 min and its tier
-    // (easy/medium/hard) is random — so push them way down; pick them only when no area egg works.
-    const special = s.group==="Special Egg";
-    const specialPenalty = special ? 24 : 0;
-    // hours: hatch time + gold-afford time, + gentle nudge toward earlier eggs (ties only; dominated by hatch count for tough leaders)
-    const effort=hatches*9/3600 + (isFinite(egGold)? goldCost/income : 0) + areaNum*0.0012 + specialPenalty;
-    groups.push({egg:s.name, cost:s.cost, hatches, goldCost, egGold, effort, areaNum, special,
-      yield:Math.round(pets.reduce((a,b)=>a+b.pct,0)), types:[...new Set(pets.flatMap(x=>x.forTypes))],
-      tier:eggTier(hatches), pets});
+    // score = value of the strong pet; Special Event eggs are event-gated (~25min, random tier) → deprioritize
+    const score=best.value*(special?0.08:1);
+    groups.push({egg:s.name, cost:s.cost, hatches:best.hatches, goldCost, egGold, special, areaNum, score,
+      headline:best, tier:eggTier(best.hatches)});
   });
-  let chosen=[];
-  if(L.elite){
-    groups.sort((a,b)=>a.effort-b.effort);
-    const covered=new Set();
-    for(const g of groups){
-      if(g.types.some(t=>!covered.has(t)) || !chosen.length){ chosen.push(g); g.types.forEach(t=>covered.add(t)); }
-      if(covered.size>=L.types.length && chosen.length>=2) break;
-      if(chosen.length>=4) break;
-    }
-  } else if(easy){
-    // base HP is plenty & type doesn't matter — point at the earliest/cheapest area egg
-    const areaEggs=groups.filter(g=>g.areaNum>0).sort((a,b)=>a.areaNum-b.areaNum);
-    chosen = areaEggs.length ? areaEggs.slice(0,2) : groups.sort((a,b)=>a.effort-b.effort).slice(0,2);
-  } else {
-    chosen=groups.sort((a,b)=>a.effort-b.effort).slice(0,2);
-  }
-  return {targetHP, copies, elite:L.elite, easy, groups:chosen, hasProfile, pArea, pReb, income};
+  // recommend the eggs that give the strongest useful pets (per hatch), not the cheapest
+  const chosen=groups.sort((a,b)=>b.score-a.score).slice(0,3);
+  return {targetHP, copies, elite:L.elite, groups:chosen, hasProfile, pArea, income};
 }
 // effective max HP of one copy of a pet given how many of it you've released (Verse formula)
 function petMaxHP(pet, released){
@@ -726,7 +705,7 @@ function leaderPlan(L){
     .map(p=>{const d=(dropIndex[p.name]||[]).find(s=>!/Leader|Legend/i.test(s.src)); return {p,src:d};})
     .filter(x=>x.src).slice(0,4);
   // elite leaders (incl. Legend): show a deep bench (up to 20) so players can swap pets around
-  return {needed,targetHP,cands:cands.slice(0, L.elite?20:5),farm};
+  return {needed,targetHP,cands:cands.slice(0,15),farm};  // a full 15-slot team to equip
 }
 function renderLeaders(){
   app.appendChild(el("p","section-sub",T("leaders_intro")));
@@ -742,8 +721,8 @@ function renderLeaders(){
     let planHTML="";
     if(plan.cands.length){
       planHTML=plan.cands.map(x=>{
-        const ready=x.hp>=plan.targetHP*0.8, enough=x.owned>=plan.needed;
-        return `<span class="teamitem"><span class="cnt">${x.owned}×</span> ${esc(x.p.name)} · <b>${fmtNum(x.hp)} HP</b> · <b>${fmtNum(x.dps)} DPS</b> ${x.strong?`<span class="tag" style="background:var(--good);color:#0c0f22">${T("badge_strong")}</span>`:""}${!enough?`<span class="tag" style="background:var(--warn);color:#0c0f22">${T("badge_need",{n:plan.needed})}</span>`:ready?`<span class="tag" style="background:var(--good);color:#0c0f22">${T("badge_ready")}</span>`:`<span class="tag" style="background:var(--bad);color:#0c0f22">${T("badge_low")}</span>`}</span>`;
+        const ready=x.hp>=plan.targetHP*0.8;  // enough HP to survive?
+        return `<span class="teamitem"><span class="cnt">${x.owned}×</span> ${esc(x.p.name)} · <b>${fmtNum(x.hp)} HP</b> · <b>${fmtNum(x.dps)} DPS</b> ${x.strong?`<span class="tag" style="background:var(--good);color:#0c0f22">${T("badge_strong")}</span>`:""}${ready?"":`<span class="tag" style="background:var(--bad);color:#0c0f22">${T("badge_low")}</span>`}</span>`;
       }).join("");
     }
     let farmHTML=plan.farm.length? `<p class="desc" style="margin-top:8px">${T("farm_prompt")} ${plan.farm.map(x=>`<b>${esc(x.p.name)}</b> <span class="mut">(${esc(x.src.src)} ${x.src.pct}%)</span>`).join(" · ")}</p>` : "";
@@ -751,9 +730,10 @@ function renderLeaders(){
     const eggPlan=buildLeaderPlan(L);
     const optHTML=eggPlan.groups.map(g=>{
       const goldStr=(isFinite(g.egGold)&&g.goldCost>0)?` <span class="tag">${T("opt_gold",{g:fmtNum(g.goldCost)})}</span>`:"";
+      const h=g.headline;
       return `<div class="egggroup">
-        <div class="egghead">🥚 <b>${esc(g.egg)}</b> <span class="grind g${g.tier}">${T("opt_hatches",{n:fmtNum(g.hatches)})}</span>${goldStr} <span class="tag">${T("opt_useful",{p:g.yield})}</span>${g.special?` <span class="tag warnspecial">⚠ ${T("opt_special_warn")}</span>`:""}</div>
-        ${g.pets.slice(0, eggPlan.copies>1?2:4).map(x=>`<div class="optmeta">• <b>${esc(x.p.name)}</b> <span class="badge" style="background:${typeColor(x.p.type)};color:#0c0f22">${esc(x.p.type)}</span> ${x.forTypes.length?`vs ${esc(x.forTypes.join("/"))} · `:""}${x.rel>0?T("opt_release",{n:x.rel,hp:fmtNum(eggPlan.targetHP)}):T("opt_norelease")}${x.uses>1?` · <span class="tag uses">🔁 ${T("opt_uses",{n:x.uses})}</span>`:""}</div>`).join("")}
+        <div class="egghead">🥚 <b>${esc(g.egg)}</b> <span class="grind g${g.tier}">${T("opt_hatches",{n:fmtNum(g.hatches)})}</span>${goldStr}${g.special?` <span class="tag warnspecial">⚠ ${T("opt_special_warn")}</span>`:""}</div>
+        <div class="optmeta">→ <b>${esc(h.p.name)}</b> <span class="badge" style="background:${typeColor(h.p.type)};color:#0c0f22">${esc(h.p.type)}</span> · ${fmtNum(h.p.dps)} DPS · ${fmtNum(h.p.baseHP)} HP${h.forTypes.length?` <span class="tag" style="background:var(--good);color:#0c0f22">${T("badge_strong")}</span>`:""}</div>
       </div>`;}).join("");
     // Without a saved profile the recommendations would just be generic — show only the prompt.
     const optInner = !eggPlan.hasProfile
