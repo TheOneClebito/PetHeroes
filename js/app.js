@@ -6,7 +6,7 @@ const PETS = window.PETS||[], META = window.META||{}, AREAS = window.AREAS||[],
       EVENTS = window.EVENTS||[], ALWAYS_ON = window.ALWAYS_ON||[], STORE = window.STORE||{pets:[],skins:[],other:[]},
       PETDEX = window.PETDEX||{rooms:[]}, TRADES = window.TRADES||{toGold:[],toCrystal:[],qty:{}},
       SHOP_ROT = window.SHOP_ROTATION||null, LEADER_PVE = window.LEADER_PVE||{}, LEADER_BENCH = window.LEADER_BENCH||{};
-const APP_VERSION = "1.3";  // bump this every release (shown on Home so users can confirm they're updated)
+const APP_VERSION = "1.4";  // bump this every release (shown on Home so users can confirm they're updated)
 const $ = (s,r=document)=>r.querySelector(s);
 const el = (tag,cls,html)=>{const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e;};
 const esc = s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -42,6 +42,13 @@ function parseNum(str){
   let val=parseFloat(m[1]); if(!m[2])return val;
   let i=SUF.findIndex(s=>s.toLowerCase()===m[2].toLowerCase());
   return i<0?NaN:val*Math.pow(10,i*3);
+}
+/* split a raw number into {m: mantissa string, i: SUF tier index} for the income unit picker */
+function splitNum(v){
+  if(v==null||!isFinite(v)||v<=0) return {m:"",i:0};
+  if(v<1000) return {m:String(Math.round(v*1000)/1000), i:0};
+  let i=Math.floor(Math.log10(v)/3); i=Math.min(i,SUF.length-1);
+  return {m:String(Math.round((v/Math.pow(10,i*3))*1000)/1000), i};
 }
 
 /* pet image or placeholder */
@@ -859,7 +866,12 @@ function renderProfile(){
       <label>${T("profile_rebirths")} <input id="prReb" type="number" min="0" max="100" value="${reb!=null?reb:""}" placeholder="0"></label>
       <label>${T("profile_area")} <input id="prArea" type="number" min="1" max="38" value="${area!=null?area:""}" placeholder="1-38"></label>
     </div>
-    <label style="display:block;margin-top:10px">${T("profile_income_in")} <input id="prInc" type="text" inputmode="decimal" value="${prof.incHr!=null?fmtNum(prof.incHr):""}" placeholder="${esc(T("profile_income_ph"))}"></label>
+    <label style="display:block;margin-top:10px">${T("profile_income_in")}
+      <span style="display:flex;gap:8px;margin-top:4px">
+        <input id="prInc" type="text" inputmode="decimal" value="${(()=>{const s=splitNum(prof.incHr);return s.m;})()}" placeholder="14" style="flex:1;min-width:0">
+        <select id="prIncUnit" style="flex:0 0 auto">${SUF.map((s,i)=>`<option value="${i}"${i===splitNum(prof.incHr).i?" selected":""}>${s||"—"}</option>`).join("")}</select>
+      </span>
+    </label>
     <p class="desc" style="margin:6px 0 0">${T("profile_income_hint")}</p>
     <div class="sub" id="prSaved" style="margin-top:10px;color:var(--good);font-weight:700"></div>`;
   app.appendChild(ec);
@@ -872,7 +884,12 @@ function renderProfile(){
   const save=()=>{
     const r=$("#prReb").value===""?null:Math.max(0,Math.min(100,parseInt($("#prReb").value||0)));
     const a=$("#prArea").value===""?null:Math.max(1,Math.min(38,parseInt($("#prArea").value||1)));
-    const iv=parseNum($("#prInc").value); const inc=($("#prInc").value.trim()===""||!isFinite(iv)||iv<=0)?null:iv;
+    const raw=$("#prInc").value.trim();
+    // if the user typed a suffix themselves (e.g. "14De") honor it; else combine number × selected unit
+    let iv;
+    if(/[a-zA-Z]/.test(raw)) iv=parseNum(raw);
+    else { const ui=parseInt($("#prIncUnit").value||"0"); iv=raw===""?NaN:parseFloat(raw.replace(/,/g,""))*Math.pow(10,ui*3); }
+    const inc=(raw===""||!isFinite(iv)||iv<=0)?null:iv;
     PH.setProfile({rebirths:r,area:a,incHr:inc});
     $("#psReb").textContent=r!=null?r:"—"; $("#psArea").textContent=a!=null?a:"—";
     $("#psInc").textContent=fmtNum(playerIncome(PH.profile()));
@@ -880,7 +897,7 @@ function renderProfile(){
     $("#prSaved").textContent=T("profile_saved"); SFX.tap();
     clearTimeout(save._t); save._t=setTimeout(()=>{const e=$("#prSaved"); if(e)e.textContent="";},1400);
   };
-  $("#prReb").addEventListener("input",save); $("#prArea").addEventListener("input",save); $("#prInc").addEventListener("input",save);
+  $("#prReb").addEventListener("input",save); $("#prArea").addEventListener("input",save); $("#prInc").addEventListener("input",save); $("#prIncUnit").addEventListener("change",save);
 
   // backup (export / import)
   const bk=el("div","calc");
