@@ -6,7 +6,7 @@ const PETS = window.PETS||[], META = window.META||{}, AREAS = window.AREAS||[],
       EVENTS = window.EVENTS||[], ALWAYS_ON = window.ALWAYS_ON||[], STORE = window.STORE||{pets:[],skins:[],other:[]},
       PETDEX = window.PETDEX||{rooms:[]}, TRADES = window.TRADES||{toGold:[],toCrystal:[],qty:{}},
       SHOP_ROT = window.SHOP_ROTATION||null, LEADER_PVE = window.LEADER_PVE||{}, LEADER_BENCH = window.LEADER_BENCH||{};
-const APP_VERSION = "1.4";  // bump this every release (shown on Home so users can confirm they're updated)
+const APP_VERSION = "1.5";  // bump this every release (shown on Home so users can confirm they're updated)
 const $ = (s,r=document)=>r.querySelector(s);
 const el = (tag,cls,html)=>{const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e;};
 const esc = s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -50,6 +50,16 @@ function splitNum(v){
   let i=Math.floor(Math.log10(v)/3); i=Math.min(i,SUF.length-1);
   return {m:String(Math.round((v/Math.pow(10,i*3))*1000)/1000), i};
 }
+/* Force-refresh to the latest deployed build: drops the SW asset cache + unregisters the worker,
+   then reloads fresh from the network. Saved progress (localStorage) is NOT touched. */
+window.forceUpdate = async function(btn){
+  try{ if(btn){ btn.disabled=true; btn.textContent="⏳"; } }catch(_){}
+  try{
+    if(window.caches){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+    if("serviceWorker" in navigator){ const rs=await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r=>r.unregister())); }
+  }catch(_){}
+  location.reload();
+};
 
 /* pet image or placeholder */
 function petAvatar(p,cls=""){
@@ -309,11 +319,12 @@ function renderHome(){
     <img class="logoimg" src="images/logo.png" alt="Pet Heroes Adventure">
     <div class="brandtext">
       <h1 class="display"><span>${esc(T("brand_sub"))}</span></h1>
-      <p class="ver"><b>app v${APP_VERSION}</b> · ${esc(T("ver_label",{n:PETS.length,v:META.version||""}))}</p>
+      <p class="ver"><b>app v${APP_VERSION}</b> · ${esc(T("ver_label",{n:PETS.length,v:META.version||""}))} <button id="updBtn" class="updbtn" type="button">↻ ${esc(T("update_check"))}</button></p>
     </div>
     <select id="langSel" class="langsel" aria-label="Language"></select>`;
   app.appendChild(brand);
   buildLangSel();
+  { const ub=$("#updBtn"); if(ub) ub.addEventListener("click",()=>window.forceUpdate(ub)); }
 
   // greeting row
   const greet=el("div","greet");

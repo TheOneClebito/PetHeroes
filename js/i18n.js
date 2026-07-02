@@ -27,6 +27,8 @@ window.I18N = {
 I18N.strings.en = {
   brand_sub:"Companion",
   ver_label:"{n} pets · data {v}",
+  update_check:"Update",
+  update_uptodate:"Up to date ✓",
   footer:"Data from community tracker. Thanks to Orchan and Joey for keeping it updated.",
   // nav
   nav_home:"Home", nav_pets:"Pets", nav_petdex:"PetDex", nav_eggs:"Eggs", nav_areas:"Areas",
