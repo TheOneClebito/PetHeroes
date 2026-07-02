@@ -251,6 +251,10 @@ ul.tips{margin:10px 0 0; padding-left:18px} ul.tips li{margin:5px 0; font-size:1
 .banner-card .bpill{margin-left:auto; flex:0 0 auto; font-size:11px; font-weight:800; padding:4px 10px;
   border-radius:999px; background:var(--good); color:#0c0f22}
 .banner-card.next .bpill{background:var(--warn)}
+.banner-card.has-art{flex-direction:column; align-items:stretch; gap:9px; padding:8px}
+.banner-card.has-art .bart{width:100%; height:auto; display:block; border-radius:11px;
+  aspect-ratio:3/1; object-fit:cover; background:rgba(0,0,0,.06)}
+.banner-card.has-art .brow{display:flex; align-items:center; gap:11px; padding:0 8px 4px}
 .aon{display:inline-block; margin-right:8px; white-space:nowrap}
 .vbucks{display:inline-flex; align-items:baseline; gap:4px; font-weight:800; font-size:15px; color:var(--accent)}
 .vbucks span{font-size:10px; color:var(--mut); font-weight:700; text-transform:uppercase; letter-spacing:.4px}

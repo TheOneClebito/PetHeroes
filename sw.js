@@ -1,5 +1,5 @@
 /* Pet Heroes Companion — service worker (offline cache) */
-const CACHE = "ph-companion-v46";
+const CACHE = "ph-companion-v47";
 const CORE = [
   "./", "./index.html", "./css/styles.css", "./js/app.js",
   "./js/data/meta.js", "./js/data/pets.js", "./js/data/inv_order.js", "./js/data/sources.js",
@@ -7,7 +7,8 @@ const CORE = [
   "./js/data/leaders_pve.js",
   "./js/data/types.js", "./js/data/income.js", "./js/data/events.js", "./js/data/store.js",
   "./js/data/petdex.js", "./js/data/trades.js", "./js/data/shop_rotation.js", "./js/i18n.js", "./js/translations.js",
-  "./manifest.webmanifest", "./icons/icon-192.png", "./images/logo.png"
+  "./manifest.webmanifest", "./icons/icon-192.png", "./images/logo.png",
+  "./images/events/capy-banner.png"
 ];
 
 self.addEventListener("install", e => {

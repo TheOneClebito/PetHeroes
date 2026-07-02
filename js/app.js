@@ -6,7 +6,7 @@ const PETS = window.PETS||[], META = window.META||{}, AREAS = window.AREAS||[],
       EVENTS = window.EVENTS||[], ALWAYS_ON = window.ALWAYS_ON||[], STORE = window.STORE||{pets:[],skins:[],other:[]},
       PETDEX = window.PETDEX||{rooms:[]}, TRADES = window.TRADES||{toGold:[],toCrystal:[],qty:{}},
       SHOP_ROT = window.SHOP_ROTATION||null, LEADER_PVE = window.LEADER_PVE||{}, LEADER_BENCH = window.LEADER_BENCH||{};
-const APP_VERSION = "1.2";  // bump this every release (shown on Home so users can confirm they're updated)
+const APP_VERSION = "1.3";  // bump this every release (shown on Home so users can confirm they're updated)
 const $ = (s,r=document)=>r.querySelector(s);
 const el = (tag,cls,html)=>{const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e;};
 const esc = s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -1290,17 +1290,23 @@ function renderBanner(){
   const upcoming=parsed.filter(e=>e.s>now).sort((a,b)=>a.s-b.s)[0];
   const days=(d)=>Math.max(0,Math.ceil((d-now)/86400000));
   const dword=n=>n===1?T("day"):T("days");
+  // renders one event card; with `art` it stacks a full-width banner image above the text row
+  const card=(cls,emoji,title,sub,pill,art)=>{
+    const txt=`<div class="btext"><b>${title}</b><span>${sub}</span></div><span class="bpill">${pill}</span>`;
+    return art
+      ? `<div class="banner-card ${cls} has-art"><img class="bart" src="${esc(art)}" alt="${esc(title)}" loading="lazy">
+           <div class="brow"><span class="bemoji">${emoji}</span>${txt}</div></div>`
+      : `<div class="banner-card ${cls}"><span class="bemoji">${emoji}</span>${txt}</div>`;
+  };
   let html;
   if(active){
     const n=days(active.e2);
-    html=`<div class="banner-card live"><span class="bemoji">${active.emoji||"🎉"}</span>
-      <div class="btext"><b>${T("ban_live",{name:esc(active.name)})}</b><span>${T("ban_live_sub",{note:esc(active.note||""),n,d:dword(n)})}</span></div>
-      <span class="bpill">${T("pill_active")}</span></div>`;
+    html=card("live", active.emoji||"🎉", T("ban_live",{name:esc(active.name)}),
+      T("ban_live_sub",{note:esc(active.note||""),n,d:dword(n)}), T("pill_active"), active.banner);
   } else if(upcoming){
     const n=days(upcoming.s);
-    html=`<div class="banner-card next"><span class="bemoji">${upcoming.emoji||"🗓️"}</span>
-      <div class="btext"><b>${T("ban_next",{name:esc(upcoming.name)})}</b><span>${T("ban_next_sub",{note:esc(upcoming.note||""),n,d:dword(n)})}</span></div>
-      <span class="bpill">${T("pill_soon")}</span></div>`;
+    html=card("next", upcoming.emoji||"🗓️", T("ban_next",{name:esc(upcoming.name)}),
+      T("ban_next_sub",{note:esc(upcoming.note||""),n,d:dword(n)}), T("pill_soon"), upcoming.banner);
   } else {
     const strip=ALWAYS_ON.map(a=>`<span class="aon">${a.emoji} ${esc(a.name)}</span>`).join("");
     html=`<div class="banner-card idle"><span class="bemoji">🎮</span>
