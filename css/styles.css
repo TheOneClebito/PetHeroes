@@ -153,6 +153,7 @@ td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
 .optrow:first-of-type{border-top:none}
 .optname{display:flex; align-items:center; gap:7px; flex-wrap:wrap; font-size:14px}
 .optmeta{font-size:12px; color:var(--mut); margin-top:3px}
+.optvariant{font-size:11px; color:var(--accent); margin-top:3px; font-weight:600}
 .grind{font-weight:800; padding:1px 6px; border-radius:5px; white-space:nowrap}
 .grind.g1,.grind.g2{background:rgba(58,210,159,.18); color:var(--good)}
 .grind.g3{background:rgba(255,204,85,.18); color:var(--warn)}

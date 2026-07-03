@@ -94,6 +94,7 @@ I18N.strings.en = {
   opt_release:"release ~{n} → {hp} HP", opt_norelease:"base HP is enough",
   opt_eggs:"~{n} eggs", opt_coins:"~{n} Rebirth Coins", opt_uses:"{n} leaders", opt_useful:"{p}% useful",
   opt_each:"1× of each", opt_15:"15× of one pet",
+  opt_variants:"All variants (Gold/Crystal/Rainbow) count as separate pets — grind duplicates of each.",
   opt_setprofile:"⚙️ Set your rebirths & last area in Profile to match recommendations to your progress.",
   opt_hatches:"~{n} hatches", opt_gold:"~{g} gold", opt_none:"No accessible egg covers this type yet — progress further.",
   opt_special_warn:"event only (~25min, random tier)",

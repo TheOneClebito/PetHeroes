@@ -6,7 +6,7 @@ const PETS = window.PETS||[], META = window.META||{}, AREAS = window.AREAS||[],
       EVENTS = window.EVENTS||[], ALWAYS_ON = window.ALWAYS_ON||[], STORE = window.STORE||{pets:[],skins:[],other:[]},
       PETDEX = window.PETDEX||{rooms:[]}, TRADES = window.TRADES||{toGold:[],toCrystal:[],qty:{}},
       SHOP_ROT = window.SHOP_ROTATION||null, LEADER_PVE = window.LEADER_PVE||{}, LEADER_BENCH = window.LEADER_BENCH||{};
-const APP_VERSION = "1.7";  // bump this every release (shown on Home so users can confirm they're updated)
+const APP_VERSION = "1.8";  // bump this every release (shown on Home so users can confirm they're updated)
 const $ = (s,r=document)=>r.querySelector(s);
 const el = (tag,cls,html)=>{const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e;};
 const esc = s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -243,7 +243,13 @@ function buildLeaderPlan(L){
       // total effort in HOURS: hatching (~9s each) + time to FARM the gold it costs. Gold matters a lot —
       // an egg costing many rebirths' worth of gold is absurd to hoard for, even if the pet is strong.
       const effort=hatches*9/3600 + ((isFinite(egGold)&&income>0)? goldCost/income : 0);
-      const power=(p.dps||0)*(p.baseHP||0)*eff;  // pet strength (DPS×HP, type-adjusted)
+      // Endgame leaders (Dark #8, Elites, Legend) need huge per-pet HP. Candy & boost pets look weak
+      // by baseHP but scale massively once you mass-release duplicates (boostedHP) — the community's
+      // "candy pets help a ton, it adds up" wisdom. Credit part of that boost potential for them so
+      // they surface as viable endgame options (small factor: reaching boostedHP is a long grind).
+      const endgame = L.elite || L.n>=8;
+      const hpForPower = (p.baseHP||0) + (endgame ? Math.max(0,(p.boostedHP||0)-(p.baseHP||0))*0.1 : 0);
+      const power=(p.dps||0)*hpForPower*eff;      // pet strength (DPS×HP, type-adjusted + boost credit)
       const value=power/Math.max(effort,0.001);  // strongest pet per unit of total effort (time + gold)
       if(!best || value>best.value) best={p, pct:dr.pct, rel, hatches, goldCost, power, value,
         forTypes:L.types.filter(T=>typeMult(p.type,T)===2)};
@@ -253,7 +259,7 @@ function buildLeaderPlan(L){
     // score = value of the strong pet; Special Event eggs are event-gated (~25min, random tier) → deprioritize
     const score=best.value*(special?0.08:1);
     groups.push({egg:s.name, cost:s.cost, hatches:best.hatches, goldCost:best.goldCost, egGold, special, areaNum, score,
-      headline:best, tier:eggTier(best.hatches)});
+      headline:best, tier:eggTier(best.hatches), variant:(best.pct<=1.5)});  // rare 1% pet → all variants usable
   });
   // recommend the eggs that give the strongest useful pets (per hatch), not the cheapest
   const chosen=groups.sort((a,b)=>b.score-a.score).slice(0,3);
@@ -779,6 +785,7 @@ function renderLeaders(){
       return `<div class="egggroup">
         <div class="egghead">🥚 <b>${esc(g.egg)}</b> <span class="grind g${g.tier}">${T("opt_hatches",{n:fmtNum(g.hatches)})}</span>${goldStr}${g.special?` <span class="tag warnspecial">⚠ ${T("opt_special_warn")}</span>`:""}</div>
         <div class="optmeta">→ <b>${esc(h.p.name)}</b> <span class="badge" style="background:${typeColor(h.p.type)};color:#0c0f22">${esc(h.p.type)}</span> · ${fmtNum(h.p.dps)} DPS · ${fmtNum(h.p.baseHP)} HP${h.forTypes.length?` <span class="tag" style="background:var(--good);color:#0c0f22">${T("badge_strong")}</span>`:""}</div>
+        ${g.variant?`<div class="optvariant">✨ ${T("opt_variants")}</div>`:""}
       </div>`;}).join("");
     // Without a saved profile the recommendations would just be generic — show only the prompt.
     const optInner = !eggPlan.hasProfile
