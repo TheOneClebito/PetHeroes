@@ -6,7 +6,7 @@ const PETS = window.PETS||[], META = window.META||{}, AREAS = window.AREAS||[],
       EVENTS = window.EVENTS||[], ALWAYS_ON = window.ALWAYS_ON||[], STORE = window.STORE||{pets:[],skins:[],other:[]},
       PETDEX = window.PETDEX||{rooms:[]}, TRADES = window.TRADES||{toGold:[],toCrystal:[],qty:{}},
       SHOP_ROT = window.SHOP_ROTATION||null, LEADER_PVE = window.LEADER_PVE||{}, LEADER_BENCH = window.LEADER_BENCH||{};
-const APP_VERSION = "1.5";  // bump this every release (shown on Home so users can confirm they're updated)
+const APP_VERSION = "1.6";  // bump this every release (shown on Home so users can confirm they're updated)
 const $ = (s,r=document)=>r.querySelector(s);
 const el = (tag,cls,html)=>{const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e;};
 const esc = s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -295,6 +295,9 @@ let curView="pets";
 function go(view){
   curView=view;
   $$("#tabbar button").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
+  // banner is Home-only (sticky at top there); hide it on every other view
+  const bn=$("#banner");
+  if(bn){ if(view==="home"){ bn.style.display=""; renderBanner(); } else { bn.style.display="none"; } }
   app.innerHTML=""; (views[view]||renderPets)(); window.scrollTo(0,0);
 }
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
