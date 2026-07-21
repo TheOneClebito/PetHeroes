@@ -6,7 +6,7 @@ const PETS = window.PETS||[], META = window.META||{}, AREAS = window.AREAS||[],
       EVENTS = window.EVENTS||[], ALWAYS_ON = window.ALWAYS_ON||[], STORE = window.STORE||{pets:[],skins:[],other:[]},
       PETDEX = window.PETDEX||{rooms:[]}, TRADES = window.TRADES||{toGold:[],toCrystal:[],qty:{}},
       SHOP_ROT = window.SHOP_ROTATION||null, LEADER_PVE = window.LEADER_PVE||{}, LEADER_BENCH = window.LEADER_BENCH||{};
-const APP_VERSION = "1.8";  // bump this every release (shown on Home so users can confirm they're updated)
+const APP_VERSION = "1.9";  // bump this every release (shown on Home so users can confirm they're updated)
 const $ = (s,r=document)=>r.querySelector(s);
 const el = (tag,cls,html)=>{const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e;};
 const esc = s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -701,9 +701,11 @@ function renderRebirths(){
   app.appendChild(calc);
   const upd=()=>{
     let n=Math.max(0,Math.min(100,parseInt($("#rbIn").value||0)));
+    const cur=REBIRTHS[n]||REBIRTHS[REBIRTHS.length-1];
     const next=REBIRTHS[n+1]||REBIRTHS[REBIRTHS.length-1];
-    const cur=REBIRTHS[n];
-    $("#rbOut").textContent=next?next.cost:"—";
+    // game formula: price to leave rebirth n = Base×1.15^(n-2) = REBIRTHS[n].cost (the CURRENT entry,
+    // not next) — so the cost to go n -> n+1 is cur.cost, not next.cost (that was one rebirth ahead).
+    $("#rbOut").textContent=cur?cur.cost:"—";
     $("#rbSub").innerHTML=T("reb_next_sub",{a:`<b>${n}</b>`,ab:cur?cur.bonusPct:0,b:`<b>${n+1}</b>`,bb:next?next.bonusPct:0});
   };
   $("#rbIn").addEventListener("input",upd); upd();
