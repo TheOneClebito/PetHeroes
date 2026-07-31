@@ -5,8 +5,9 @@ const PETS = window.PETS||[], META = window.META||{}, AREAS = window.AREAS||[],
       TYPES = window.TYPES||{list:[],strong:{},weak:{}}, INCOME = window.INCOME||{areaBasePerHour:{},offline:{}},
       EVENTS = window.EVENTS||[], ALWAYS_ON = window.ALWAYS_ON||[], STORE = window.STORE||{pets:[],skins:[],other:[]},
       PETDEX = window.PETDEX||{rooms:[]}, TRADES = window.TRADES||{toGold:[],toCrystal:[],qty:{}},
-      SHOP_ROT = window.SHOP_ROTATION||null, LEADER_PVE = window.LEADER_PVE||{}, LEADER_BENCH = window.LEADER_BENCH||{};
-const APP_VERSION = "1.9";  // bump this every release (shown on Home so users can confirm they're updated)
+      SHOP_ROT = window.SHOP_ROTATION||null, LEADER_PVE = window.LEADER_PVE||{}, LEADER_BENCH = window.LEADER_BENCH||{},
+      PERKS = window.PERKS||[], TOWER = window.TOWER||{}, CARDS = window.CARDS||[];
+const APP_VERSION = "2.1";  // bump this every release (shown on Home so users can confirm they're updated)
 const $ = (s,r=document)=>r.querySelector(s);
 const el = (tag,cls,html)=>{const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e;};
 const esc = s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -296,7 +297,7 @@ SRC.sources.forEach(s=>s.drops.forEach(dr=>{
 /* ---------------- ROUTER ---------------- */
 const app=$("#app");
 const views={home:renderHome,pets:renderPets,petdex:renderPetdex,eggs:renderEggs,
-             leaders:renderLeaders,store:renderStore,calc:renderCalc,tips:renderTips,profile:renderProfile};
+             leaders:renderLeaders,store:renderStore,calc:renderCalc,tips:renderTips,profile:renderProfile,tower:renderTower};
 let curView="pets";
 function go(view){
   curView=view;
@@ -378,7 +379,7 @@ function renderHome(){
   // quick navigation
   app.appendChild(el("div","section-title",T("home_quick")));
   const links=[["pets","paw","nav_pets","#FFE2DB","#F9876F"],["petdex","book","nav_petdex","#E4ECFF","#6C8CF5"],["eggs","egg","nav_eggs","#FFF1D6","#D99A2B"],
-               ["leaders","crown","nav_leaders","#F1E6FF","#9B6CF5"],["tips","bulb","nav_tips","#DDF3EC","#2FA98C"],["calc","calc","nav_calc","#FFE0EC","#F56CA0"]];
+               ["leaders","crown","nav_leaders","#F1E6FF","#9B6CF5"],["tower","tower","nav_tower","#FFEAD6","#E8833A"],["tips","bulb","nav_tips","#DDF3EC","#2FA98C"],["calc","calc","nav_calc","#FFE0EC","#F56CA0"]];
   const qn=el("div","quicknav");
   links.forEach(([v,ic,key,bg,col])=>{
     const c=el("button","qcard"); c.innerHTML=`<span class="qemoji" style="background:${bg}"><svg class="qic" style="color:${col}"><use href="#i-${ic}"/></svg></span><span>${esc(T(key))}</span>`;
@@ -1314,6 +1315,128 @@ function renderTips(){
   app.appendChild(list);
 }
 
+/* ---------------- INFINITE TOWER (perk codex + token calculator) ---------------- */
+const PERK_RAR = {Common:"#3aca7f", Rare:"#4a90d9", Epic:"#a855f7", Legendary:"#f5a623"};
+const PERK_CATS = ["single","team","chain","mechanic","mastery","utility"];
+const CARD_CATS = ["heal","damage","buff","defense","control","summon","economy"];
+let towerState = {tab:"perks", cat:"", q:""};
+const twCoin = `<img class="twcoin" src="images/perks/T_TowerToken.png" alt="tokens">`;
+
+function towerBracket(arr,f){ for(const b of arr){ if(f<=b.max) return b.t; } return 0; }
+// Repeatable tokens for reaching `floor`: clears 1..floor + boss bonuses, × run multipliers.
+function towerRunTokens(floor,opt){
+  opt=opt||{}; const TW=TOWER; if(!TW.floorReward) return 0;
+  let base=0;
+  for(let f=1; f<=floor; f++){
+    base += towerBracket(TW.floorReward,f);
+    if(TW.bossInterval>0 && f%TW.bossInterval===0) base += towerBracket(TW.bossBonus,f);
+  }
+  const cardMult = 1 + ((TW.greedTiers||[])[opt.greed||0]||0) + (opt.pocket?TW.pocketChange:0);
+  const cofreMult = 1 + (opt.cofre||0)*(TW.cofrePerLevel||0);
+  return Math.round(base*cardMult*cofreMult);
+}
+function towerMilestone(floor){ return (TOWER.milestones||[]).filter(m=>m.f<=floor).reduce((s,m)=>s+m.t,0); }
+
+function renderTower(){
+  app.appendChild(el("div","section-title",T("nav_tower")));
+  const tabs=el("div","twtabs");
+  [["perks","tower_perks"],["cards","tower_cards"],["tokens","tower_tokens"]].forEach(([k,lbl])=>{
+    const b=el("button","twtab"+(towerState.tab===k?" on":""),esc(T(lbl)));
+    b.onclick=()=>{ towerState.tab=k; towerState.cat=""; towerState.q=""; $$(".twtab").forEach(x=>x.classList.toggle("on",x===b)); renderTowerBody(); };
+    tabs.appendChild(b);
+  });
+  app.appendChild(tabs);
+  const bd=el("div"); bd.id="twBody"; app.appendChild(bd);
+  renderTowerBody();
+}
+function renderTowerBody(){
+  const b=$("#twBody"); if(!b)return; b.innerHTML="";
+  if(towerState.tab==="tokens"){ renderTokenCalc(b); return; }
+  const cards=towerState.tab==="cards";
+  renderCodex(b, cards?CARDS:PERKS, cards?CARD_CATS:PERK_CATS, cards?"ccat_":"cat_",
+              cards?"cards_desc":"tower_codex_desc", cards?"cards_count":"tower_count", cards);
+}
+// Generic filterable grid — drives both the Perk codex and the Card codex.
+function renderCodex(body, items, cats, catPrefix, descKey, countKey, isCards){
+  body.appendChild(el("p","section-sub",T(descKey)));
+  const bar=el("div","search"); bar.innerHTML=`<input id="cxSearch" type="text" placeholder="${esc(T("tower_search"))}" value="${esc(towerState.q)}">`;
+  body.appendChild(bar);
+  const chips=el("div","chips");
+  [["","cat_all"]].concat(cats.map(c=>[c,catPrefix+c])).forEach(([c,lbl])=>{
+    const b=el("button","chip"+(towerState.cat===c?" on":""),esc(T(lbl))); b.dataset.cat=c;
+    b.onclick=()=>{ towerState.cat=c; $$(".chip",chips).forEach(x=>x.classList.toggle("on",x.dataset.cat===c)); fillCodex(items,isCards); };
+    chips.appendChild(b);
+  });
+  body.appendChild(chips);
+  const grid=el("div","perkgrid"); grid.id="cxGrid"; body.appendChild(grid);
+  body.appendChild(el("p","optnote",T(countKey,{n:items.length})));
+  const si=$("#cxSearch"); if(si) si.addEventListener("input",()=>{ towerState.q=si.value; fillCodex(items,isCards); });
+  fillCodex(items,isCards);
+}
+function fillCodex(items,isCards){
+  const grid=$("#cxGrid"); if(!grid) return; grid.innerHTML="";
+  const q=towerState.q.trim().toLowerCase(), dir=isCards?"cards":"perks";
+  const list=items.filter(p=>(!towerState.cat||p.cat===towerState.cat) &&
+    (!q || p.name.toLowerCase().includes(q) || p.effect.toLowerCase().includes(q)));
+  list.forEach(p=>{
+    const col=PERK_RAR[p.rarity]||"#3aca7f";
+    const c=el("div","perkcard"); c.style.borderColor=col;
+    c.innerHTML=`
+      <div class="pk-ic"><img src="images/${dir}/${esc(p.icon)}" alt="" loading="lazy" onerror="this.closest('.pk-ic').classList.add('noimg')"></div>
+      <div class="pk-body">
+        <div class="pk-top"><b class="pk-name">${esc(p.name)}</b><span class="pk-rar" style="background:${col}">${esc(p.rarity)}</span></div>
+        <p class="pk-eff">${esc(p.effect)}</p>
+        ${p.oneTime?`<span class="pk-once">${esc(T("perk_once"))}</span>`:""}
+      </div>`;
+    grid.appendChild(c);
+  });
+  if(!list.length) grid.appendChild(el("p","optnote",T("tower_noperks")));
+}
+
+function renderTokenCalc(body){
+  body.appendChild(el("p","section-sub",T("tower_calc_desc")));
+  const c=el("div","calc");
+  c.innerHTML=`
+    <div class="field"><label>${T("tw_floor")}</label><input id="twFloor" type="number" min="1" max="500" value="50"></div>
+    <div class="minegrid" style="margin-top:8px">
+      <label>${T("tw_cofre")} <input id="twCofre" type="number" min="0" max="8" value="0" placeholder="0-8"></label>
+      <label>${T("tw_greed")}
+        <select id="twGreed"><option value="0">—</option><option value="1">I (+25%)</option><option value="2">II (+45%)</option><option value="3">III (+80%)</option></select>
+      </label>
+    </div>
+    <label class="twchk" style="display:block;margin-top:8px"><input id="twPocket" type="checkbox"> ${T("tw_pocket")} (+30%)</label>
+    <div class="result" style="margin-top:10px"><div class="lbl">${T("tw_tokens_run")}</div><div class="big" id="twOut">—</div><div class="sub" id="twMile"></div></div>`;
+  body.appendChild(c);
+  body.appendChild(el("div","section-title",T("tw_afford")));
+  const aff=el("div","twafford"); aff.id="twAfford"; body.appendChild(aff);
+  const goal=el("div","calc"); goal.style.marginTop="10px";
+  goal.innerHTML=`<div class="field"><label>${T("tw_goal")}</label><input id="twGoal" type="text" inputmode="numeric" placeholder="20000"></div><div class="sub" id="twGoalOut"></div>`;
+  body.appendChild(goal);
+  const upd=()=>{
+    const floor=Math.max(1,Math.min(500,parseInt($("#twFloor").value||1)));
+    const cofre=Math.max(0,Math.min(8,parseInt($("#twCofre").value||0)));
+    const greed=parseInt($("#twGreed").value||0);
+    const pocket=$("#twPocket").checked;
+    const per=towerRunTokens(floor,{cofre,greed,pocket});
+    $("#twOut").innerHTML=fmtNum(per)+" "+twCoin;
+    const mile=towerMilestone(floor);
+    $("#twMile").innerHTML = mile>0 ? T("tw_milestone",{n:fmtNum(mile)}) : "";
+    const affEl=$("#twAfford"); affEl.innerHTML="";
+    (TOWER.bossPets||[]).forEach(bp=>{
+      const runs = per>0 ? Math.ceil(bp.cost/per) : null;
+      const r=el("div","twaff-row");
+      r.innerHTML=`<span class="twaff-name">${esc(bp.name)} <span class="mut">· ${T("tw_floor_n",{n:bp.floor})}</span></span>
+        <span class="twaff-cost">${fmtNum(bp.cost)} ${twCoin}</span>
+        <span class="twaff-runs">${runs==null?"∞":T("tw_runs",{n:runs})}</span>`;
+      affEl.appendChild(r);
+    });
+    const g=parseInt(($("#twGoal").value||"").replace(/\D/g,""));
+    $("#twGoalOut").innerHTML = (isFinite(g)&&g>0&&per>0) ? T("tw_goal_out",{g:fmtNum(g),n:Math.ceil(g/per)}) : "";
+  };
+  ["twFloor","twCofre","twGreed","twPocket","twGoal"].forEach(id=>{const e=$("#"+id); if(e){ e.addEventListener("input",upd); e.addEventListener("change",upd); }});
+  upd();
+}
+
 /* ---------------- MODAL ---------------- */
 function openModal(){const m=$("#modal"); m.classList.remove("hidden"); m.setAttribute("aria-hidden","false"); document.body.style.overflow="hidden";}
 function closeModal(){const m=$("#modal"); m.classList.add("hidden"); m.setAttribute("aria-hidden","true"); document.body.style.overflow="";}
@@ -1357,7 +1480,7 @@ function renderBanner(){
 
 /* ---------------- I18N STATIC + SWITCHER ---------------- */
 function applyStatic(){
-  const NAV={home:"nav_home",pets:"nav_pets",petdex:"nav_petdex",eggs:"nav_eggs",leaders:"nav_leaders",store:"nav_store",calc:"nav_calc",tips:"nav_tips",profile:"nav_profile"};
+  const NAV={home:"nav_home",pets:"nav_pets",petdex:"nav_petdex",eggs:"nav_eggs",leaders:"nav_leaders",store:"nav_store",calc:"nav_calc",tips:"nav_tips",profile:"nav_profile",tower:"nav_tower"};
   $$("#tabbar button").forEach(b=>{const k=NAV[b.dataset.view]; const l=b.querySelector(".bl"); if(k&&l)l.textContent=T(k);});
   const bs=$("#brandSub"); if(bs)bs.textContent=T("brand_sub");
   const vl=$("#verLabel"); if(vl)vl.textContent=T("ver_label",{n:PETS.length,v:META.version||""});

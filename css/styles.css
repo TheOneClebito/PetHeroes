@@ -36,6 +36,35 @@ h1,h2,h3{margin:0}
   color:var(--accent); vertical-align:middle; white-space:nowrap; line-height:1.4}
 .updbtn:active{transform:scale(.95)}
 .updbtn[disabled]{opacity:.6; cursor:default}
+/* ---- Infinite Tower (perk codex + token calc) ---- */
+.twtabs{display:flex; gap:8px; margin:4px 0 10px}
+.twtab{flex:1; padding:9px; border-radius:12px; border:1px solid var(--line); background:var(--card);
+  font:inherit; font-weight:800; font-size:13px; color:var(--mut); cursor:pointer}
+.twtab.on{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; border-color:transparent}
+.perkgrid{display:grid; grid-template-columns:1fr; gap:9px; margin-top:10px}
+@media(min-width:560px){.perkgrid{grid-template-columns:1fr 1fr}}
+.perkcard{display:flex; gap:11px; align-items:flex-start; padding:10px 12px; border-radius:14px;
+  border:1px solid var(--line); border-left-width:4px; background:var(--card)}
+.pk-ic{flex:0 0 auto; width:44px; height:44px; border-radius:10px; overflow:hidden;
+  background:rgba(0,0,0,.05); display:flex; align-items:center; justify-content:center}
+.pk-ic img{width:100%; height:100%; object-fit:contain}
+.pk-ic.noimg::after{content:"✨"; font-size:20px}
+.pk-body{min-width:0; flex:1}
+.pk-top{display:flex; align-items:center; gap:8px; justify-content:space-between}
+.pk-name{font-size:14px}
+.pk-rar{flex:0 0 auto; font-size:9.5px; font-weight:800; text-transform:uppercase; letter-spacing:.3px;
+  color:#fff; padding:2px 7px; border-radius:999px}
+.pk-eff{margin:4px 0 0; font-size:12.5px; color:var(--txt)}
+.pk-once{display:inline-block; margin-top:5px; font-size:10px; font-weight:700; color:var(--mut);
+  border:1px solid var(--line); border-radius:999px; padding:1px 7px}
+.twcoin{width:14px; height:14px; vertical-align:-2px}
+.twchk{font-size:13px; font-weight:600}
+.twafford{display:flex; flex-direction:column; gap:7px; margin-top:6px}
+.twaff-row{display:flex; align-items:center; gap:8px; padding:8px 11px; border-radius:11px;
+  border:1px solid var(--line); background:var(--card); font-size:13px}
+.twaff-name{flex:1; font-weight:700; min-width:0}
+.twaff-cost{flex:0 0 auto; color:var(--mut)}
+.twaff-runs{flex:0 0 auto; font-weight:800; color:var(--accent)}
 .langsel{margin-left:auto; flex:0 0 auto; background:var(--card); border:1px solid var(--line);
   color:var(--txt); padding:7px 12px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer; outline:none; box-shadow:var(--shadow-sm)}
 .langsel:focus{border-color:var(--accent)}

@@ -33,7 +33,21 @@ I18N.strings.en = {
   // nav
   nav_home:"Home", nav_pets:"Pets", nav_petdex:"PetDex", nav_eggs:"Eggs", nav_areas:"Areas",
   nav_rebirths:"Rebirths", nav_leaders:"Leaders", nav_store:"Shop", nav_calc:"Calculators", nav_tips:"Tips",
-  nav_profile:"Profile",
+  nav_profile:"Profile", nav_tower:"Tower",
+  // infinite tower (perk codex + token calculator)
+  tower_perks:"Perks", tower_tokens:"Tokens",
+  tower_codex_desc:"Every Infinite Tower perk — what it does and how rare it is.",
+  tower_calc_desc:"Estimate the Tower Tokens a run earns, and how many runs to afford boss pets.",
+  tower_search:"Search perks…",
+  cat_all:"All", cat_single:"Single", cat_team:"Team", cat_chain:"Chains", cat_mechanic:"Mechanics", cat_mastery:"Mastery", cat_utility:"Utility",
+  perk_once:"once per run", tower_count:"{n} perks total", tower_noperks:"No perk matches.",
+  tw_floor:"Floor reached", tw_cofre:"Vault lvl", tw_greed:"Greed", tw_pocket:"Pocket Change",
+  tw_tokens_run:"Tokens per run", tw_afford:"Runs to afford a boss pet", tw_goal:"Custom token goal",
+  tw_milestone:"+{n} first-time milestone bonus (once)", tw_runs:"{n} runs", tw_floor_n:"floor {n}",
+  tw_goal_out:"{g} tokens ≈ {n} runs",
+  tower_cards:"Cards", cards_count:"{n} cards total",
+  cards_desc:"Active cards — 1 drawn per floor, spent from your hand for a burst effect.",
+  ccat_heal:"Heal", ccat_damage:"Damage", ccat_buff:"Buff", ccat_defense:"Defense", ccat_control:"Control", ccat_summon:"Summon", ccat_economy:"Economy",
   // home
   home_sub:"Your Pet Heroes Adventure companion", home_dex_title:"Your Pet Dex",
   home_collected:"{have} / {total} pets collected", home_explore:"Explore",
