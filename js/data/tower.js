@@ -14,9 +14,10 @@ window.TOWER = {
   // Exclusive boss pets — token cost per EXTRA copy (1st copy is free on first boss kill)
   bossPets: [
     {floor:10, name:"Cactus", cost:2000},
-    {floor:20, name:"Slime",  cost:3000},
-    {floor:30, name:"Knight", cost:4000},
-    {floor:40, name:"Frog",   cost:5000},
-    {floor:50, name:"Dino",   cost:6000},
+    {floor:20, name:"Slime",  cost:4000},
+    {floor:30, name:"Knight", cost:6000},
+    {floor:40, name:"Frog",   cost:8000},
+    {floor:50, name:"Dino",   cost:10000},
+    {floor:60, name:"M3CH",   cost:12000},
   ],
 };
