@@ -26,7 +26,7 @@ window.SHOP_ROTATION = {
   ],
   // skin id (PetID_SkinID) -> the offer name in STORE.skins
   skinMap: {
-    "Bunny01_1":"Cyborg Bunny", "Bat01_1":"Bat Cyborg", "Pig03_1":"Spider Pig Cyborg",
+    "Bunny01_1":"Cyborg Bunny", "Bat01_1":"Bat Cyborg", "Pig03_1":"Pig Hero Cyborg",
     "39_1":"Black Sheep", "Cat01_1":"Carnival Cat", "Lion01_1":"Carnival Lion",
     "Peacock01_1":"Carnival Peacock", "DogSpecial_1":"Angel Dog Cupid", "Shark01_1":"Shark Valentine"
   }
