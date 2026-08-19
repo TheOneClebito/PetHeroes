@@ -46,7 +46,7 @@ Images were matched precisely using the game's own PetID → name → texture ma
 
 The app shows a colored placeholder (pet's first letter) for any pet without an image. To add one:
 drop a PNG into `images/pets/` named after the pet's slug (lowercase, spaces → `-`, e.g.
-`spider-pig.png`), then set `"img":"spider-pig.png"` on that pet in `pets.js`.
+`pig-hero.png`), then set `"img":"pig-hero.png"` on that pet in `pets.js`.
 
 **The only 3 without images** — their source PNGs aren't in the
 `MAPAS_FORTNITE\2. PET_SIMULATOR\Pets` folder (the game references `T_TurkeyCandy` / `T_PandaCandy`

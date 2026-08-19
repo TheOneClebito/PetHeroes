@@ -20,7 +20,7 @@ window.STORE = {
   ],
   skins: [
     { name: "Angel Dog Cupid", pet: "Angel Dog", vbucks: 1000 },
-    { name: "Spider Pig Cyborg", pet: "Spider Pig", vbucks: 1000 },
+    { name: "Spider Pig Cyborg", pet: "Pig Hero", vbucks: 1000 },
     { name: "Bat Cyborg", pet: "Bat", vbucks: 500 },
     { name: "Carnival Lion", pet: "Lion", vbucks: 500 },
     { name: "Carnival Peacock", pet: "Peacock", vbucks: 500 },
