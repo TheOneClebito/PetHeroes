@@ -9,6 +9,7 @@ window.STORE = {
     { name: "Doll", vbucks: 1500 }, { name: "Elf", vbucks: 1500 },
     { name: "Fuzzy Wuzzy", vbucks: 1500 }, { name: "Snowman", vbucks: 1500 },
     { name: "Ghost", vbucks: 1500 },
+    { name: "Baby Bunny", vbucks: 1500 },
     { name: "Donut Cat", vbucks: 750 },
     { name: "Easter Bunny", vbucks: 500 }, { name: "Guard Pig", vbucks: 500 },
     { name: "P3-T", vbucks: 500 }, { name: "Polar Bear", vbucks: 500 },
