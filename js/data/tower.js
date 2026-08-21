@@ -20,4 +20,10 @@ window.TOWER = {
     {floor:50, name:"Dino",   cost:10000},
     {floor:60, name:"M3CH",   cost:12000},
   ],
+  // Leader pets buyable with Tower Tokens (must beat the Leader first to unlock it in the shop)
+  leaderPets: [
+    {name:"Tiger",    cost:10000},
+    {name:"Wolf",     cost:15000},
+    {name:"Scorpion", cost:20000},
+  ],
 };

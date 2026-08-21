@@ -1430,6 +1430,14 @@ function renderTokenCalc(body){
         <span class="twaff-runs">${runs==null?"∞":T("tw_runs",{n:runs})}</span>`;
       affEl.appendChild(r);
     });
+    (TOWER.leaderPets||[]).forEach(lp=>{
+      const runs = per>0 ? Math.ceil(lp.cost/per) : null;
+      const r=el("div","twaff-row");
+      r.innerHTML=`<span class="twaff-name">${esc(lp.name)} <span class="mut">· Leader</span></span>
+        <span class="twaff-cost">${fmtNum(lp.cost)} ${twCoin}</span>
+        <span class="twaff-runs">${runs==null?"∞":T("tw_runs",{n:runs})}</span>`;
+      affEl.appendChild(r);
+    });
     const g=parseInt(($("#twGoal").value||"").replace(/\D/g,""));
     $("#twGoalOut").innerHTML = (isFinite(g)&&g>0&&per>0) ? T("tw_goal_out",{g:fmtNum(g),n:Math.ceil(g/per)}) : "";
   };
